@@ -1,0 +1,148 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    kubernetes.io/created-by: |
+      {"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"ReplicationController","namespace":"ipaas-testing","name":"ipaas-keycloak-1","uid":"5d00c1cf-ff4f-11e6-8418-0e4452489d53","apiVersion":"v1","resourceVersion":"287767791"}}
+    openshift.io/deployment-config.latest-version: "1"
+    openshift.io/deployment-config.name: ipaas-keycloak
+    openshift.io/deployment.name: ipaas-keycloak-1
+    openshift.io/generated-by: OpenShiftNewApp
+    openshift.io/scc: restricted
+    pod.alpha.kubernetes.io/init-container-statuses: '[{"name":"openshift-ca-pemtokeystore","state":{"terminated":{"exitCode":0,"reason":"Completed","startedAt":"2017-03-02T13:51:49Z","finishedAt":"2017-03-02T13:51:49Z","containerID":"docker://fb2f1702faffce0b3d6ddaee1842ab107c91352d3716f5743bc09616cd15586b"}},"lastState":{},"ready":true,"restartCount":0,"image":"jimmidyson/pemtokeystore:v0.2.0","imageID":"docker-pullable://docker.io/jimmidyson/pemtokeystore@sha256:df4676ef71ecce6080ebdcf18a29f5e2ba1c77d5a88929028ba687e3da823dec","containerID":"docker://fb2f1702faffce0b3d6ddaee1842ab107c91352d3716f5743bc09616cd15586b"}]'
+    pod.alpha.kubernetes.io/init-containers: '[{"name":"openshift-ca-pemtokeystore","image":"jimmidyson/pemtokeystore:v0.2.0","args":["-keystore","/tls-keystore/openshift-truststore.jks","-ca-file","/var/run/secrets/kubernetes.io/serviceaccount/ca.crt","-ca-file","/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt","-ca-dir","/usr/share/ca-certificates/mozilla"],"resources":{},"volumeMounts":[{"name":"ipaas-keycloak-tls","mountPath":"/tls-keystore"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}]'
+    pod.beta.kubernetes.io/init-container-statuses: '[{"name":"openshift-ca-pemtokeystore","state":{"terminated":{"exitCode":0,"reason":"Completed","startedAt":"2017-03-02T13:51:49Z","finishedAt":"2017-03-02T13:51:49Z","containerID":"docker://fb2f1702faffce0b3d6ddaee1842ab107c91352d3716f5743bc09616cd15586b"}},"lastState":{},"ready":true,"restartCount":0,"image":"jimmidyson/pemtokeystore:v0.2.0","imageID":"docker-pullable://docker.io/jimmidyson/pemtokeystore@sha256:df4676ef71ecce6080ebdcf18a29f5e2ba1c77d5a88929028ba687e3da823dec","containerID":"docker://fb2f1702faffce0b3d6ddaee1842ab107c91352d3716f5743bc09616cd15586b"}]'
+    pod.beta.kubernetes.io/init-containers: '[{"name":"openshift-ca-pemtokeystore","image":"jimmidyson/pemtokeystore:v0.2.0","args":["-keystore","/tls-keystore/openshift-truststore.jks","-ca-file","/var/run/secrets/kubernetes.io/serviceaccount/ca.crt","-ca-file","/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt","-ca-dir","/usr/share/ca-certificates/mozilla"],"resources":{},"volumeMounts":[{"name":"ipaas-keycloak-tls","mountPath":"/tls-keystore"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}]'
+  creationTimestamp: 2017-03-02T13:51:45Z
+  generateName: ipaas-keycloak-1-
+  labels:
+    app: redhat-ipaas
+    component: ipaas-keycloak
+    deployment: ipaas-keycloak-1
+    deploymentconfig: ipaas-keycloak
+  name: ipaas-keycloak-1-njmvr
+  namespace: ipaas-testing
+  resourceVersion: "287768882"
+  selfLink: /api/v1/namespaces/ipaas-testing/pods/ipaas-keycloak-1-njmvr
+  uid: 5fc61381-ff4f-11e6-8418-0e4452489d53
+spec:
+  containers:
+  - args:
+    - -b
+    - 0.0.0.0
+    - -Dkeycloak.import=/opt/jboss/keycloak/standalone/configuration/ipaas-realm.json
+    - -Dkeycloak.migration.strategy=IGNORE_EXISTING
+    - -Djavax.net.ssl.trustStore=/opt/jboss/keycloak/standalone/configuration/tls/openshift-truststore.jks
+    env:
+    - name: KEYCLOAK_USER
+      valueFrom:
+        secretKeyRef:
+          key: username
+          name: ipaas-keycloak-admin
+    - name: KEYCLOAK_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          key: password
+          name: ipaas-keycloak-admin
+    image: docker.io/jimmidyson/keycloak-openshift@sha256:d6e6024148ab9dd3051ceb7fd0392eb3af6c998b3638aa401fa478db88165bee
+    imagePullPolicy: IfNotPresent
+    name: ipaas-keycloak
+    ports:
+    - containerPort: 8080
+      protocol: TCP
+    readinessProbe:
+      failureThreshold: 3
+      httpGet:
+        path: /auth
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 15
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 1
+    resources: {}
+    securityContext:
+      capabilities:
+        drop:
+        - KILL
+        - MKNOD
+        - NET_RAW
+        - SETGID
+        - SETUID
+        - SYS_CHROOT
+      privileged: false
+      runAsUser: 1001070000
+      seLinuxOptions:
+        level: s0:c33,c7
+    terminationMessagePath: /dev/termination-log
+    volumeMounts:
+    - mountPath: /opt/jboss/keycloak/standalone/configuration/standalone.xml
+      name: ipaas-keycloak-config
+      subPath: config/standalone.xml
+    - mountPath: /opt/jboss/keycloak/standalone/configuration/ipaas-realm.json
+      name: ipaas-keycloak-config
+      subPath: config/ipaas-realm.json
+    - mountPath: /opt/jboss/keycloak/standalone/configuration/tls
+      name: ipaas-keycloak-tls
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: default-token-eswoh
+      readOnly: true
+  dnsPolicy: ClusterFirst
+  imagePullSecrets:
+  - name: default-dockercfg-340ct
+  nodeName: ip-172-31-61-170.ec2.internal
+  nodeSelector:
+    type: compute
+  restartPolicy: Always
+  securityContext:
+    fsGroup: 1001070000
+    seLinuxOptions:
+      level: s0:c33,c7
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  volumes:
+  - configMap:
+      defaultMode: 420
+      items:
+      - key: standalone.xml
+        path: config/standalone.xml
+      - key: ipaas-realm.json
+        path: config/ipaas-realm.json
+      name: ipaas-keycloak-config
+    name: ipaas-keycloak-config
+  - emptyDir: {}
+    name: ipaas-keycloak-tls
+  - name: default-token-eswoh
+    secret:
+      defaultMode: 420
+      secretName: default-token-eswoh
+status:
+  conditions:
+  - lastProbeTime: null
+    lastTransitionTime: 2017-03-02T13:51:49Z
+    status: "True"
+    type: Initialized
+  - lastProbeTime: null
+    lastTransitionTime: 2017-03-02T13:52:25Z
+    status: "True"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: 2017-03-02T13:51:45Z
+    status: "True"
+    type: PodScheduled
+  containerStatuses:
+  - containerID: docker://90e3566a38800827b1af7bff6f051a1104771bd7cef65c7bfde79a2c66b56e3c
+    image: docker.io/jimmidyson/keycloak-openshift@sha256:d6e6024148ab9dd3051ceb7fd0392eb3af6c998b3638aa401fa478db88165bee
+    imageID: docker-pullable://docker.io/jimmidyson/keycloak-openshift@sha256:d6e6024148ab9dd3051ceb7fd0392eb3af6c998b3638aa401fa478db88165bee
+    lastState: {}
+    name: ipaas-keycloak
+    ready: true
+    restartCount: 0
+    state:
+      running:
+        startedAt: 2017-03-02T13:51:51Z
+  hostIP: 172.31.61.170
+  phase: Running
+  podIP: 10.1.16.4
+  startTime: 2017-03-02T13:51:45Z
