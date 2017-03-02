@@ -1,0 +1,805 @@
+{
+    "kind": "List",
+    "apiVersion": "v1",
+    "metadata": {},
+    "items": [
+        {
+            "apiVersion": "v1",
+            "kind": "ImageStream",
+            "metadata": {
+                "labels": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-rest"
+                },
+                "name": "ipaas-rest"
+            },
+            "spec": {
+                "tags": [
+                    {
+                        "from": {
+                            "kind": "DockerImage",
+                            "name": "docker.io/rhipaas/ipaas-rest:latest"
+                        },
+                        "importPolicy": {
+                            "scheduled": true
+                        },
+                        "name": "latest"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "ImageStream",
+            "metadata": {
+                "labels": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-keycloak"
+                },
+                "name": "ipaas-keycloak"
+            },
+            "spec": {
+                "tags": [
+                    {
+                        "from": {
+                            "kind": "DockerImage",
+                            "name": "docker.io/jimmidyson/keycloak-openshift:2.5.1.Final"
+                        },
+                        "importPolicy": {
+                            "scheduled": true
+                        },
+                        "name": "2.5.1.Final"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "ImageStream",
+            "metadata": {
+                "labels": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-ui"
+                },
+                "name": "ipaas-ui"
+            },
+            "spec": {
+                "tags": [
+                    {
+                        "from": {
+                            "kind": "DockerImage",
+                            "name": "docker.io/rhipaas/ipaas-ui:latest"
+                        },
+                        "importPolicy": {
+                            "scheduled": true
+                        },
+                        "name": "latest"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "metadata": {
+                "labels": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-keycloak"
+                },
+                "name": "ipaas-keycloak-admin"
+            },
+            "stringData": {
+                "password": "4d3iM6TsAtOLVd4sTjvg0biWwqfKQqdkyanra1kb",
+                "username": "admin"
+            },
+            "type": "kubernetes.io/basic-auth"
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "ServiceAccount",
+            "metadata": {
+                "labels": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-rest"
+                },
+                "name": "ipaas-rest"
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "RoleBinding",
+            "metadata": {
+                "labels": {
+                    "app": "redhat-ipaas"
+                },
+                "name": "ipaas:viewers"
+            },
+            "roleRef": {
+                "name": "view"
+            },
+            "subjects": [
+                {
+                    "kind": "ServiceAccount",
+                    "name": "ipaas-rest"
+                }
+            ]
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "DeploymentConfig",
+            "metadata": {
+                "labels": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-ui"
+                },
+                "name": "ipaas-ui"
+            },
+            "spec": {
+                "replicas": 1,
+                "selector": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-ui",
+                    "deploymentconfig": "ipaas-ui"
+                },
+                "strategy": {
+                    "rollingParams": {
+                        "intervalSeconds": 1,
+                        "maxSurge": "25%",
+                        "maxUnavailable": "25%",
+                        "timeoutSeconds": 600,
+                        "updatePeriodSeconds": 1
+                    },
+                    "type": "Rolling"
+                },
+                "template": {
+                    "metadata": {
+                        "labels": {
+                            "app": "redhat-ipaas",
+                            "component": "ipaas-ui",
+                            "deploymentconfig": "ipaas-ui"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "image": " ",
+                                "imagePullPolicy": "IfNotPresent",
+                                "name": "ipaas-ui",
+                                "ports": [
+                                    {
+                                        "containerPort": 2015
+                                    }
+                                ],
+                                "readinessProbe": {
+                                    "httpGet": {
+                                        "path": "/",
+                                        "port": 2015
+                                    },
+                                    "initialDelaySeconds": 1
+                                },
+                                "volumeMounts": [
+                                    {
+                                        "mountPath": "/srv/config.json",
+                                        "name": "config-volume",
+                                        "subPath": "config/config.json"
+                                    }
+                                ]
+                            }
+                        ],
+                        "volumes": [
+                            {
+                                "configMap": {
+                                    "items": [
+                                        {
+                                            "key": "config.json",
+                                            "path": "config/config.json"
+                                        }
+                                    ],
+                                    "name": "ipaas-ui-config"
+                                },
+                                "name": "config-volume"
+                            }
+                        ]
+                    }
+                },
+                "triggers": [
+                    {
+                        "imageChangeParams": {
+                            "automatic": true,
+                            "containerNames": [
+                                "ipaas-ui"
+                            ],
+                            "from": {
+                                "kind": "ImageStreamTag",
+                                "name": "ipaas-ui:latest"
+                            }
+                        },
+                        "type": "ImageChange"
+                    },
+                    {
+                        "type": "ConfigChange"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "DeploymentConfig",
+            "metadata": {
+                "labels": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-keycloak"
+                },
+                "name": "ipaas-keycloak"
+            },
+            "spec": {
+                "replicas": 1,
+                "selector": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-keycloak",
+                    "deploymentconfig": "ipaas-keycloak"
+                },
+                "strategy": {
+                    "rollingParams": {
+                        "intervalSeconds": 1,
+                        "maxSurge": "25%",
+                        "maxUnavailable": "25%",
+                        "timeoutSeconds": 600,
+                        "updatePeriodSeconds": 1
+                    },
+                    "type": "Rolling"
+                },
+                "template": {
+                    "metadata": {
+                        "annotations": {
+                            "pod.beta.kubernetes.io/init-containers": "[{\n  \"name\": \"openshift-ca-pemtokeystore\",\n  \"image\": \"jimmidyson/pemtokeystore:v0.2.0\",\n  \"imagePullPolicy\": \"IfNotPresent\",\n  \"args\": [\n    \"-keystore\", \"/tls-keystore/openshift-truststore.jks\",\n    \"-ca-file\", \"/var/run/secrets/kubernetes.io/serviceaccount/ca.crt\",\n    \"-ca-file\", \"/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt\",\n    \"-ca-dir\", \"/usr/share/ca-certificates/mozilla\"\n  ],\n  \"volumeMounts\": [{\n    \"name\": \"ipaas-keycloak-tls\",\n    \"mountPath\": \"/tls-keystore\"\n  }]\n}]"
+                        },
+                        "labels": {
+                            "app": "redhat-ipaas",
+                            "component": "ipaas-keycloak",
+                            "deploymentconfig": "ipaas-keycloak"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "args": [
+                                    "-b",
+                                    "0.0.0.0",
+                                    "-Dkeycloak.import=/opt/jboss/keycloak/standalone/configuration/ipaas-realm.json",
+                                    "-Dkeycloak.migration.strategy=IGNORE_EXISTING",
+                                    "-Djavax.net.ssl.trustStore=/opt/jboss/keycloak/standalone/configuration/tls/openshift-truststore.jks"
+                                ],
+                                "env": [
+                                    {
+                                        "name": "KEYCLOAK_USER",
+                                        "valueFrom": {
+                                            "secretKeyRef": {
+                                                "key": "username",
+                                                "name": "ipaas-keycloak-admin"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "name": "KEYCLOAK_PASSWORD",
+                                        "valueFrom": {
+                                            "secretKeyRef": {
+                                                "key": "password",
+                                                "name": "ipaas-keycloak-admin"
+                                            }
+                                        }
+                                    }
+                                ],
+                                "image": " ",
+                                "imagePullPolicy": "IfNotPresent",
+                                "name": "ipaas-keycloak",
+                                "ports": [
+                                    {
+                                        "containerPort": 8080
+                                    }
+                                ],
+                                "readinessProbe": {
+                                    "httpGet": {
+                                        "path": "/auth",
+                                        "port": 8080
+                                    },
+                                    "initialDelaySeconds": 15
+                                },
+                                "volumeMounts": [
+                                    {
+                                        "mountPath": "/opt/jboss/keycloak/standalone/configuration/standalone.xml",
+                                        "name": "ipaas-keycloak-config",
+                                        "subPath": "config/standalone.xml"
+                                    },
+                                    {
+                                        "mountPath": "/opt/jboss/keycloak/standalone/configuration/ipaas-realm.json",
+                                        "name": "ipaas-keycloak-config",
+                                        "subPath": "config/ipaas-realm.json"
+                                    },
+                                    {
+                                        "mountPath": "/opt/jboss/keycloak/standalone/configuration/tls",
+                                        "name": "ipaas-keycloak-tls"
+                                    }
+                                ]
+                            }
+                        ],
+                        "initContainers": [
+                            {
+                                "args": [
+                                    "-keystore",
+                                    "/tls-keystore/openshift-truststore.jks",
+                                    "-ca-file",
+                                    "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+                                    "-ca-file",
+                                    "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt",
+                                    "-ca-dir",
+                                    "/usr/share/ca-certificates/mozilla"
+                                ],
+                                "image": "jimmidyson/pemtokeystore:v0.2.0",
+                                "imagePullPolicy": "IfNotPresent",
+                                "name": "openshift-ca-pemtokeystore",
+                                "volumeMounts": [
+                                    {
+                                        "mountPath": "/tls-keystore",
+                                        "name": "ipaas-keycloak-tls"
+                                    }
+                                ]
+                            }
+                        ],
+                        "volumes": [
+                            {
+                                "configMap": {
+                                    "items": [
+                                        {
+                                            "key": "standalone.xml",
+                                            "path": "config/standalone.xml"
+                                        },
+                                        {
+                                            "key": "ipaas-realm.json",
+                                            "path": "config/ipaas-realm.json"
+                                        }
+                                    ],
+                                    "name": "ipaas-keycloak-config"
+                                },
+                                "name": "ipaas-keycloak-config"
+                            },
+                            {
+                                "emptyDir": {},
+                                "name": "ipaas-keycloak-tls"
+                            }
+                        ]
+                    }
+                },
+                "triggers": [
+                    {
+                        "imageChangeParams": {
+                            "automatic": true,
+                            "containerNames": [
+                                "ipaas-keycloak"
+                            ],
+                            "from": {
+                                "kind": "ImageStreamTag",
+                                "name": "ipaas-keycloak:2.5.1.Final"
+                            }
+                        },
+                        "type": "ImageChange"
+                    },
+                    {
+                        "type": "ConfigChange"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "DeploymentConfig",
+            "metadata": {
+                "labels": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-rest"
+                },
+                "name": "ipaas-rest"
+            },
+            "spec": {
+                "replicas": 1,
+                "selector": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-rest",
+                    "deploymentconfig": "ipaas-rest"
+                },
+                "strategy": {
+                    "rollingParams": {
+                        "intervalSeconds": 1,
+                        "maxSurge": "25%",
+                        "maxUnavailable": "25%",
+                        "timeoutSeconds": 10800,
+                        "updatePeriodSeconds": 1
+                    },
+                    "type": "Rolling"
+                },
+                "template": {
+                    "metadata": {
+                        "annotations": {
+                            "pod.beta.kubernetes.io/init-containers": "[{\n  \"name\": \"openshift-ca-pemtokeystore\",\n  \"image\": \"jimmidyson/pemtokeystore:v0.2.0\",\n  \"imagePullPolicy\": \"IfNotPresent\",\n  \"args\": [\n    \"-keystore\", \"/tls-keystore/openshift-truststore.jks\",\n    \"-ca-file\", \"/var/run/secrets/kubernetes.io/serviceaccount/ca.crt\",\n    \"-ca-file\", \"/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt\",\n    \"-ca-dir\", \"/usr/share/ca-certificates/mozilla\"\n  ],\n  \"volumeMounts\": [{\n    \"name\": \"ipaas-rest-tls\",\n    \"mountPath\": \"/tls-keystore\"\n  }]\n}]"
+                        },
+                        "labels": {
+                            "app": "redhat-ipaas",
+                            "component": "ipaas-rest",
+                            "deploymentconfig": "ipaas-rest"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "env": [
+                                    {
+                                        "name": "AB_JOLOKIA_OFF",
+                                        "value": "true"
+                                    },
+                                    {
+                                        "name": "JAVA_APP_DIR",
+                                        "value": "/deployments"
+                                    },
+                                    {
+                                        "name": "AB_OFF",
+                                        "value": "true"
+                                    },
+                                    {
+                                        "name": "JAVA_OPTIONS",
+                                        "value": "-Djava.net.preferIPv4Stack=true -Djavax.net.ssl.trustStore=/tls-keystore/openshift-truststore.jks"
+                                    }
+                                ],
+                                "image": " ",
+                                "imagePullPolicy": "IfNotPresent",
+                                "name": "ipaas-rest",
+                                "ports": [
+                                    {
+                                        "containerPort": 8080,
+                                        "name": "http"
+                                    },
+                                    {
+                                        "containerPort": 9779,
+                                        "name": "prometheus"
+                                    },
+                                    {
+                                        "containerPort": 8778,
+                                        "name": "jolokia"
+                                    }
+                                ],
+                                "readinessProbe": {
+                                    "httpGet": {
+                                        "path": "/health",
+                                        "port": 8181
+                                    },
+                                    "initialDelaySeconds": 5
+                                },
+                                "resources": {
+                                    "limits": {
+                                        "cpu": "2000m",
+                                        "memory": "612Mi"
+                                    },
+                                    "requests": {
+                                        "cpu": "200m",
+                                        "memory": "612Mi"
+                                    }
+                                },
+                                "volumeMounts": [
+                                    {
+                                        "mountPath": "/tls-keystore",
+                                        "name": "ipaas-rest-tls"
+                                    },
+                                    {
+                                        "mountPath": "/deployments/config",
+                                        "name": "config-volume"
+                                    }
+                                ]
+                            }
+                        ],
+                        "initContainers": [
+                            {
+                                "args": [
+                                    "-keystore",
+                                    "/tls-keystore/openshift-truststore.jks",
+                                    "-ca-file",
+                                    "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+                                    "-ca-file",
+                                    "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt",
+                                    "-ca-dir",
+                                    "/usr/share/ca-certificates/mozilla"
+                                ],
+                                "image": "jimmidyson/pemtokeystore:v0.2.0",
+                                "imagePullPolicy": "IfNotPresent",
+                                "name": "openshift-ca-pemtokeystore",
+                                "volumeMounts": [
+                                    {
+                                        "mountPath": "/tls-keystore",
+                                        "name": "ipaas-rest-tls"
+                                    }
+                                ]
+                            }
+                        ],
+                        "serviceAccountName": "ipaas-rest",
+                        "volumes": [
+                            {
+                                "emptyDir": {},
+                                "name": "ipaas-rest-tls"
+                            },
+                            {
+                                "configMap": {
+                                    "name": "ipaas-rest-config"
+                                },
+                                "name": "config-volume"
+                            }
+                        ]
+                    }
+                },
+                "triggers": [
+                    {
+                        "imageChangeParams": {
+                            "automatic": true,
+                            "containerNames": [
+                                "ipaas-rest"
+                            ],
+                            "from": {
+                                "kind": "ImageStreamTag",
+                                "name": "ipaas-rest:latest"
+                            }
+                        },
+                        "type": "ImageChange"
+                    },
+                    {
+                        "type": "ConfigChange"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "labels": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-ui"
+                },
+                "name": "ipaas-ui"
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "port": 2015,
+                        "protocol": "TCP",
+                        "targetPort": 2015
+                    }
+                ],
+                "selector": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-ui"
+                }
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "labels": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-keycloak"
+                },
+                "name": "ipaas-keycloak"
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "port": 8080,
+                        "protocol": "TCP",
+                        "targetPort": 8080
+                    }
+                ],
+                "selector": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-keycloak"
+                }
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "labels": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-rest"
+                },
+                "name": "ipaas-rest"
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "port": 80,
+                        "protocol": "TCP",
+                        "targetPort": 8080
+                    }
+                ],
+                "selector": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-rest"
+                }
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Route",
+            "metadata": {
+                "labels": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-rest"
+                },
+                "name": "ipaas-rest"
+            },
+            "spec": {
+                "host": "ipaas-staging.b6ff.rh-idev.openshiftapps.com",
+                "path": "/api/v1",
+                "port": {
+                    "targetPort": 8080
+                },
+                "tls": {
+                    "insecureEdgeTerminationPolicy": "Redirect",
+                    "termination": "edge"
+                },
+                "to": {
+                    "kind": "Service",
+                    "name": "ipaas-rest",
+                    "weight": 100
+                }
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Route",
+            "metadata": {
+                "labels": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-ui"
+                },
+                "name": "ipaas-ui"
+            },
+            "spec": {
+                "host": "ipaas-staging.b6ff.rh-idev.openshiftapps.com",
+                "port": {
+                    "targetPort": 2015
+                },
+                "tls": {
+                    "insecureEdgeTerminationPolicy": "Redirect",
+                    "termination": "edge"
+                },
+                "to": {
+                    "kind": "Service",
+                    "name": "ipaas-ui"
+                }
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Route",
+            "metadata": {
+                "labels": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-keycloak"
+                },
+                "name": "ipaas-keycloak-realm-ipaas"
+            },
+            "spec": {
+                "host": "ipaas-staging.b6ff.rh-idev.openshiftapps.com",
+                "path": "/auth/realms/ipaas",
+                "port": {
+                    "targetPort": 8080
+                },
+                "tls": {
+                    "insecureEdgeTerminationPolicy": "Redirect",
+                    "termination": "edge"
+                },
+                "to": {
+                    "kind": "Service",
+                    "name": "ipaas-keycloak",
+                    "weight": 100
+                }
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Route",
+            "metadata": {
+                "labels": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-keycloak"
+                },
+                "name": "ipaas-keycloak-resources"
+            },
+            "spec": {
+                "host": "ipaas-staging.b6ff.rh-idev.openshiftapps.com",
+                "path": "/auth/resources",
+                "port": {
+                    "targetPort": 8080
+                },
+                "tls": {
+                    "insecureEdgeTerminationPolicy": "Redirect",
+                    "termination": "edge"
+                },
+                "to": {
+                    "kind": "Service",
+                    "name": "ipaas-keycloak",
+                    "weight": 100
+                }
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Route",
+            "metadata": {
+                "labels": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-keycloak"
+                },
+                "name": "ipaas-keycloak-external"
+            },
+            "spec": {
+                "host": "ipaas-staging-keycloak.b6ff.rh-idev.openshiftapps.com",
+                "port": {
+                    "targetPort": 8080
+                },
+                "tls": {
+                    "insecureEdgeTerminationPolicy": "Redirect",
+                    "termination": "edge"
+                },
+                "to": {
+                    "kind": "Service",
+                    "name": "ipaas-keycloak",
+                    "weight": 100
+                }
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "data": {
+                "ipaas-realm.json": "{\n  \"realm\": \"ipaas\",\n  \"notBefore\": 0,\n  \"revokeRefreshToken\": false,\n  \"accessTokenLifespan\": 300,\n  \"accessTokenLifespanForImplicitFlow\": 900,\n  \"ssoSessionIdleTimeout\": 1800,\n  \"ssoSessionMaxLifespan\": 36000,\n  \"offlineSessionIdleTimeout\": 2592000,\n  \"accessCodeLifespan\": 60,\n  \"accessCodeLifespanUserAction\": 300,\n  \"accessCodeLifespanLogin\": 1800,\n  \"enabled\": true,\n  \"sslRequired\": \"none\",\n  \"registrationAllowed\": false,\n  \"registrationEmailAsUsername\": false,\n  \"rememberMe\": false,\n  \"verifyEmail\": false,\n  \"loginWithEmailAllowed\": true,\n  \"duplicateEmailsAllowed\": false,\n  \"resetPasswordAllowed\": false,\n  \"editUsernameAllowed\": false,\n  \"bruteForceProtected\": false,\n  \"maxFailureWaitSeconds\": 900,\n  \"minimumQuickLoginWaitSeconds\": 60,\n  \"waitIncrementSeconds\": 60,\n  \"quickLoginCheckMilliSeconds\": 1000,\n  \"maxDeltaTimeSeconds\": 43200,\n  \"failureFactor\": 30,\n  \"loginTheme\": \"keycloak\",\n  \"accountTheme\": \"keycloak\",\n  \"adminTheme\": \"openshift\",\n  \"emailTheme\": \"keycloak\",\n  \"identityProviders\": [{\n    \"alias\": \"openshift\",\n    \"providerId\": \"openshift\",\n    \"enabled\": true,\n    \"updateProfileFirstLoginMode\": \"on\",\n    \"trustEmail\": true,\n    \"storeToken\": true,\n    \"addReadTokenRoleOnCreate\": true,\n    \"authenticateByDefault\": true,\n    \"firstBrokerLoginFlowAlias\": \"first broker login\",\n    \"config\": {\n      \"openshiftUrl\": \"https://172.30.0.1:443\",\n      \"clientSecret\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJpcGFhcy1jaSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJpcGFhcy1vYXV0aC1jbGllbnQtdG9rZW4tanQ1NjYiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiaXBhYXMtb2F1dGgtY2xpZW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQudWlkIjoiNDhmM2M3NDctZmRkMC0xMWU2LWEyOTctMGUxM2EwMmQ4ZWJkIiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmlwYWFzLWNpOmlwYWFzLW9hdXRoLWNsaWVudCJ9.C86lM3h83tY2OL4UlbAw6qQ4cn8rwpoN_frBYbpoV5GhROMkyMNwmxsvVkmybL0QSAyP3NcL-n9APIUakiLSF02KkUjgD_i5VopwAKijLiXOBvLRQCDJPB-gUq42tgqUFrWGrI137vc0NfLagOx9sRqtn4Ox8pG1SlKzilap_YrDNfgVxWrbLNpdpUiCE2wXos9AHwyUX-yp8P4QeOjQ70kaYCpVrV7heg1QnWVN0tG14gHEgXLsnmNX0lWqHq7z7UnQ_lasy2d4KYLyJmAoJcFl-rVwvgsZgHfT8YMNE-PMaSKLtgplqG_7sTV9P2mfZhV45_M1nFygzojgQug_EQ\",\n      \"clientId\": \"system:serviceaccount:ipaas-testing:ipaas-oauth-client\",\n      \"defaultScope\": \"user:info user:check-access role:edit:ipaas-testing:!\",\n      \"useJwksUrl\": \"true\"\n    }\n  }],\n  \"requiredCredentials\": [ \"password\" ],\n  \"passwordPolicy\": \"hashIterations(20000)\",\n  \"otpPolicyType\": \"totp\",\n  \"otpPolicyAlgorithm\": \"HmacSHA1\",\n  \"otpPolicyInitialCounter\": 0,\n  \"otpPolicyDigits\": 6,\n  \"otpPolicyLookAheadWindow\": 1,\n  \"otpPolicyPeriod\": 30,\n  \"clients\": [{\n    \"clientId\": \"ipaas-rest\",\n    \"surrogateAuthRequired\": false,\n    \"enabled\": true,\n    \"clientAuthenticatorType\": \"client-secret\",\n    \"secret\": \"iHei1bA3L2rXFsqITV3fDNJ21vVWAt45Glb8s2gKDIvKvhpvV2vTRAgdNIjh8V5V\",\n    \"notBefore\": 0,\n    \"bearerOnly\": true,\n    \"consentRequired\": false,\n    \"standardFlowEnabled\": true,\n    \"implicitFlowEnabled\": false,\n    \"directAccessGrantsEnabled\": false,\n    \"serviceAccountsEnabled\": false,\n    \"publicClient\": false,\n    \"frontchannelLogout\": false,\n    \"fullScopeAllowed\": true,\n    \"nodeReRegistrationTimeout\": -1,\n    \"useTemplateConfig\": false,\n    \"useTemplateScope\": false,\n    \"useTemplateMappers\": false\n  }, {\n    \"clientId\": \"ipaas-ui\",\n    \"surrogateAuthRequired\": false,\n    \"enabled\": true,\n    \"clientAuthenticatorType\": \"client-secret\",\n    \"redirectUris\": [ \"https://ipaas-staging.b6ff.rh-idev.openshiftapps.com/*\" ],\n    \"webOrigins\": [ \"+\" ],\n    \"notBefore\": 0,\n    \"bearerOnly\": false,\n    \"consentRequired\": false,\n    \"standardFlowEnabled\": true,\n    \"implicitFlowEnabled\": true,\n    \"directAccessGrantsEnabled\": false,\n    \"serviceAccountsEnabled\": false,\n    \"publicClient\": true,\n    \"frontchannelLogout\": false,\n    \"protocol\": \"openid-connect\",\n    \"attributes\": {\n      \"saml.assertion.signature\": \"false\",\n      \"saml.force.post.binding\": \"false\",\n      \"saml.multivalued.roles\": \"false\",\n      \"saml.encrypt\": \"false\",\n      \"saml_force_name_id_format\": \"false\",\n      \"saml.client.signature\": \"false\",\n      \"saml.authnstatement\": \"false\",\n      \"saml.server.signature\": \"false\",\n      \"saml.server.signature.keyinfo.ext\": \"false\"\n    },\n    \"fullScopeAllowed\": false,\n    \"nodeReRegistrationTimeout\": -1\n  }],\n  \"browserSecurityHeaders\": {\n    \"xContentTypeOptions\": \"nosniff\",\n    \"xFrameOptions\": \"SAMEORIGIN\",\n    \"contentSecurityPolicy\": \"frame-src 'self'\"\n  },\n  \"eventsEnabled\": false,\n  \"eventsListeners\": [ \"jboss-logging\" ],\n  \"adminEventsEnabled\": false,\n  \"adminEventsDetailsEnabled\": false,\n  \"internationalizationEnabled\": false,\n  \"authenticationFlows\": [{\n    \"alias\": \"Handle Existing Account\",\n    \"description\": \"Handle what to do if there is existing account with same email/username like authenticated identity provider\",\n    \"providerId\": \"basic-flow\",\n    \"topLevel\": false,\n    \"builtIn\": true,\n    \"authenticationExecutions\": [{\n      \"authenticator\": \"idp-confirm-link\",\n      \"requirement\": \"REQUIRED\",\n      \"priority\": 10,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }, {\n      \"authenticator\": \"idp-email-verification\",\n      \"requirement\": \"ALTERNATIVE\",\n      \"priority\": 20,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }, {\n      \"requirement\": \"ALTERNATIVE\",\n      \"priority\": 30,\n      \"flowAlias\": \"Verify Existing Account by Re-authentication\",\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": true\n    }]\n  }, {\n    \"alias\": \"Verify Existing Account by Re-authentication\",\n    \"description\": \"Reauthentication of existing account\",\n    \"providerId\": \"basic-flow\",\n    \"topLevel\": false,\n    \"builtIn\": true,\n    \"authenticationExecutions\": [{\n      \"authenticator\": \"idp-username-password-form\",\n      \"requirement\": \"REQUIRED\",\n      \"priority\": 10,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }, {\n      \"authenticator\": \"auth-otp-form\",\n      \"requirement\": \"OPTIONAL\",\n      \"priority\": 20,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }]\n  }, {\n    \"alias\": \"browser\",\n    \"description\": \"browser based authentication\",\n    \"providerId\": \"basic-flow\",\n    \"topLevel\": true,\n    \"builtIn\": true,\n    \"authenticationExecutions\": [{\n      \"authenticator\": \"auth-cookie\",\n      \"requirement\": \"DISABLED\",\n      \"priority\": 10,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }, {\n      \"authenticator\": \"auth-spnego\",\n      \"requirement\": \"DISABLED\",\n      \"priority\": 20,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }, {\n      \"authenticatorConfig\": \"openshift\",\n      \"authenticator\": \"identity-provider-redirector\",\n      \"requirement\": \"ALTERNATIVE\",\n      \"priority\": 25,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }, {\n      \"requirement\": \"DISABLED\",\n      \"priority\": 30,\n      \"flowAlias\": \"forms\",\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": true\n    }]\n  }, {\n    \"alias\": \"clients\",\n    \"description\": \"Base authentication for clients\",\n    \"providerId\": \"client-flow\",\n    \"topLevel\": true,\n    \"builtIn\": true,\n    \"authenticationExecutions\": [{\n      \"authenticator\": \"client-secret\",\n      \"requirement\": \"ALTERNATIVE\",\n      \"priority\": 10,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }, {\n      \"authenticator\": \"client-jwt\",\n      \"requirement\": \"ALTERNATIVE\",\n      \"priority\": 20,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }]\n  }, {\n    \"alias\": \"direct grant\",\n    \"description\": \"OpenID Connect Resource Owner Grant\",\n    \"providerId\": \"basic-flow\",\n    \"topLevel\": true,\n    \"builtIn\": true,\n    \"authenticationExecutions\": [{\n      \"authenticator\": \"direct-grant-validate-username\",\n      \"requirement\": \"REQUIRED\",\n      \"priority\": 10,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }, {\n      \"authenticator\": \"direct-grant-validate-password\",\n      \"requirement\": \"REQUIRED\",\n      \"priority\": 20,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }, {\n      \"authenticator\": \"direct-grant-validate-otp\",\n      \"requirement\": \"OPTIONAL\",\n      \"priority\": 30,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }]\n  }, {\n    \"alias\": \"first broker login\",\n    \"description\": \"Actions taken after first broker login with identity provider account, which is not yet linked to any Keycloak account\",\n    \"providerId\": \"basic-flow\",\n    \"topLevel\": true,\n    \"builtIn\": true,\n    \"authenticationExecutions\": [{\n      \"authenticatorConfig\": \"review profile config\",\n      \"authenticator\": \"idp-review-profile\",\n      \"requirement\": \"REQUIRED\",\n      \"priority\": 10,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }, {\n      \"authenticatorConfig\": \"create unique user config\",\n      \"authenticator\": \"idp-create-user-if-unique\",\n      \"requirement\": \"ALTERNATIVE\",\n      \"priority\": 20,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }, {\n      \"requirement\": \"ALTERNATIVE\",\n      \"priority\": 30,\n      \"flowAlias\": \"Handle Existing Account\",\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": true\n    }]\n  }, {\n    \"alias\": \"forms\",\n    \"description\": \"Username, password, otp and other auth forms.\",\n    \"providerId\": \"basic-flow\",\n    \"topLevel\": false,\n    \"builtIn\": true,\n    \"authenticationExecutions\": [{\n      \"authenticator\": \"auth-username-password-form\",\n      \"requirement\": \"REQUIRED\",\n      \"priority\": 10,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }, {\n      \"authenticator\": \"auth-otp-form\",\n      \"requirement\": \"DISABLED\",\n      \"priority\": 20,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }]\n  }, {\n    \"alias\": \"registration\",\n    \"description\": \"registration flow\",\n    \"providerId\": \"basic-flow\",\n    \"topLevel\": true,\n    \"builtIn\": true,\n    \"authenticationExecutions\": [{\n      \"authenticator\": \"registration-page-form\",\n      \"requirement\": \"REQUIRED\",\n      \"priority\": 10,\n      \"flowAlias\": \"registration form\",\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": true\n    }]\n  }, {\n    \"alias\": \"registration form\",\n    \"description\": \"registration form\",\n    \"providerId\": \"form-flow\",\n    \"topLevel\": false,\n    \"builtIn\": true,\n    \"authenticationExecutions\": [{\n      \"authenticator\": \"registration-user-creation\",\n      \"requirement\": \"REQUIRED\",\n      \"priority\": 20,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }, {\n      \"authenticator\": \"registration-profile-action\",\n      \"requirement\": \"REQUIRED\",\n      \"priority\": 40,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }, {\n      \"authenticator\": \"registration-password-action\",\n      \"requirement\": \"REQUIRED\",\n      \"priority\": 50,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }, {\n      \"authenticator\": \"registration-recaptcha-action\",\n      \"requirement\": \"DISABLED\",\n      \"priority\": 60,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }]\n  }, {\n    \"alias\": \"reset credentials\",\n    \"description\": \"Reset credentials for a user if they forgot their password or something\",\n    \"providerId\": \"basic-flow\",\n    \"topLevel\": true,\n    \"builtIn\": true,\n    \"authenticationExecutions\": [{\n      \"authenticator\": \"reset-credentials-choose-user\",\n      \"requirement\": \"REQUIRED\",\n      \"priority\": 10,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }, {\n      \"authenticator\": \"reset-credential-email\",\n      \"requirement\": \"REQUIRED\",\n      \"priority\": 20,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }, {\n      \"authenticator\": \"reset-password\",\n      \"requirement\": \"REQUIRED\",\n      \"priority\": 30,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }, {\n      \"authenticator\": \"reset-otp\",\n      \"requirement\": \"OPTIONAL\",\n      \"priority\": 40,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }]\n  }, {\n    \"alias\": \"saml ecp\",\n    \"description\": \"SAML ECP Profile Authentication Flow\",\n    \"providerId\": \"basic-flow\",\n    \"topLevel\": true,\n    \"builtIn\": true,\n    \"authenticationExecutions\": [{\n      \"authenticator\": \"http-basic-authenticator\",\n      \"requirement\": \"REQUIRED\",\n      \"priority\": 10,\n      \"userSetupAllowed\": false,\n      \"autheticatorFlow\": false\n    }]\n  }],\n  \"authenticatorConfig\": [{\n    \"alias\": \"create unique user config\",\n    \"config\": {\n      \"require.password.update.after.registration\": \"false\"\n    }\n  }, {\n    \"alias\": \"openshift\",\n    \"config\": {\n      \"defaultProvider\": \"openshift\"\n    }\n  }, {\n    \"alias\": \"review profile config\",\n    \"config\": {\n      \"update.profile.on.first.login\": \"missing\"\n    }\n  }],\n  \"requiredActions\": [{\n    \"alias\": \"CONFIGURE_TOTP\",\n    \"name\": \"Configure OTP\",\n    \"providerId\": \"CONFIGURE_TOTP\",\n    \"enabled\": false,\n    \"defaultAction\": false\n  }, {\n    \"alias\": \"UPDATE_PASSWORD\",\n    \"name\": \"Update Password\",\n    \"providerId\": \"UPDATE_PASSWORD\",\n    \"enabled\": false,\n    \"defaultAction\": false\n  }, {\n    \"alias\": \"UPDATE_PROFILE\",\n    \"name\": \"Update Profile\",\n    \"providerId\": \"UPDATE_PROFILE\",\n    \"enabled\": false,\n    \"defaultAction\": false\n  }, {\n    \"alias\": \"VERIFY_EMAIL\",\n    \"name\": \"Verify Email\",\n    \"providerId\": \"VERIFY_EMAIL\",\n    \"enabled\": false,\n    \"defaultAction\": false\n  }, {\n    \"alias\": \"terms_and_conditions\",\n    \"name\": \"Terms and Conditions\",\n    \"providerId\": \"terms_and_conditions\",\n    \"enabled\": false,\n    \"defaultAction\": false\n  }],\n  \"browserFlow\": \"browser\",\n  \"registrationFlow\": \"registration\",\n  \"directGrantFlow\": \"direct grant\",\n  \"resetCredentialsFlow\": \"reset credentials\",\n  \"clientAuthenticationFlow\": \"clients\"\n}",
+                "standalone.xml": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\n\u003cserver xmlns=\"urn:jboss:domain:4.0\"\u003e\n    \u003cextensions\u003e\n        \u003cextension module=\"org.jboss.as.clustering.infinispan\"/\u003e\n        \u003cextension module=\"org.jboss.as.connector\"/\u003e\n        \u003cextension module=\"org.jboss.as.deployment-scanner\"/\u003e\n        \u003cextension module=\"org.jboss.as.ee\"/\u003e\n        \u003cextension module=\"org.jboss.as.ejb3\"/\u003e\n        \u003cextension module=\"org.jboss.as.jaxrs\"/\u003e\n        \u003cextension module=\"org.jboss.as.jdr\"/\u003e\n        \u003cextension module=\"org.jboss.as.jmx\"/\u003e\n        \u003cextension module=\"org.jboss.as.jpa\"/\u003e\n        \u003cextension module=\"org.jboss.as.jsf\"/\u003e\n        \u003cextension module=\"org.jboss.as.logging\"/\u003e\n        \u003cextension module=\"org.jboss.as.mail\"/\u003e\n        \u003cextension module=\"org.jboss.as.naming\"/\u003e\n        \u003cextension module=\"org.jboss.as.remoting\"/\u003e\n        \u003cextension module=\"org.jboss.as.security\"/\u003e\n        \u003cextension module=\"org.jboss.as.transactions\"/\u003e\n        \u003cextension module=\"org.keycloak.keycloak-server-subsystem\"/\u003e\n        \u003cextension module=\"org.wildfly.extension.bean-validation\"/\u003e\n        \u003cextension module=\"org.wildfly.extension.io\"/\u003e\n        \u003cextension module=\"org.wildfly.extension.request-controller\"/\u003e\n        \u003cextension module=\"org.wildfly.extension.security.manager\"/\u003e\n        \u003cextension module=\"org.wildfly.extension.undertow\"/\u003e\n    \u003c/extensions\u003e\n    \u003cmanagement\u003e\n        \u003csecurity-realms\u003e\n            \u003csecurity-realm name=\"ManagementRealm\"\u003e\n                \u003cauthentication\u003e\n                    \u003clocal default-user=\"$local\" skip-group-loading=\"true\"/\u003e\n                    \u003cproperties path=\"mgmt-users.properties\" relative-to=\"jboss.server.config.dir\"/\u003e\n                \u003c/authentication\u003e\n                \u003cauthorization map-groups-to-roles=\"false\"\u003e\n                    \u003cproperties path=\"mgmt-groups.properties\" relative-to=\"jboss.server.config.dir\"/\u003e\n                \u003c/authorization\u003e\n            \u003c/security-realm\u003e\n            \u003csecurity-realm name=\"ApplicationRealm\"\u003e\n                \u003cauthentication\u003e\n                    \u003clocal default-user=\"$local\" allowed-users=\"*\" skip-group-loading=\"true\"/\u003e\n                    \u003cproperties path=\"application-users.properties\" relative-to=\"jboss.server.config.dir\"/\u003e\n                \u003c/authentication\u003e\n                \u003cauthorization\u003e\n                    \u003cproperties path=\"application-roles.properties\" relative-to=\"jboss.server.config.dir\"/\u003e\n                \u003c/authorization\u003e\n            \u003c/security-realm\u003e\n        \u003c/security-realms\u003e\n        \u003caudit-log\u003e\n            \u003cformatters\u003e\n                \u003cjson-formatter name=\"json-formatter\"/\u003e\n            \u003c/formatters\u003e\n            \u003chandlers\u003e\n                \u003cfile-handler name=\"file\" formatter=\"json-formatter\" relative-to=\"jboss.server.data.dir\"\n                          path=\"audit-log.log\"/\u003e\n            \u003c/handlers\u003e\n            \u003clogger log-boot=\"true\" log-read-only=\"false\" enabled=\"false\"\u003e\n                \u003chandlers\u003e\n                    \u003chandler name=\"file\"/\u003e\n                \u003c/handlers\u003e\n            \u003c/logger\u003e\n        \u003c/audit-log\u003e\n        \u003cmanagement-interfaces\u003e\n            \u003chttp-interface security-realm=\"ManagementRealm\" http-upgrade-enabled=\"true\"\u003e\n                \u003csocket-binding http=\"management-http\"/\u003e\n            \u003c/http-interface\u003e\n        \u003c/management-interfaces\u003e\n        \u003caccess-control provider=\"simple\"\u003e\n            \u003crole-mapping\u003e\n                \u003crole name=\"SuperUser\"\u003e\n                    \u003cinclude\u003e\n                        \u003cuser name=\"$local\"/\u003e\n                    \u003c/include\u003e\n                \u003c/role\u003e\n            \u003c/role-mapping\u003e\n        \u003c/access-control\u003e\n    \u003c/management\u003e\n    \u003cprofile\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:logging:3.0\"\u003e\n            \u003cconsole-handler name=\"CONSOLE\"\u003e\n                \u003clevel name=\"INFO\"/\u003e\n                \u003cformatter\u003e\n                    \u003cnamed-formatter name=\"COLOR-PATTERN\"/\u003e\n                \u003c/formatter\u003e\n            \u003c/console-handler\u003e\n\n            \u003clogger category=\"com.arjuna\"\u003e\n                \u003clevel name=\"WARN\"/\u003e\n            \u003c/logger\u003e\n            \u003clogger category=\"org.jboss.as.config\"\u003e\n                \u003clevel name=\"DEBUG\"/\u003e\n            \u003c/logger\u003e\n            \u003clogger category=\"sun.rmi\"\u003e\n                \u003clevel name=\"WARN\"/\u003e\n            \u003c/logger\u003e\n            \u003croot-logger\u003e\n                \u003clevel name=\"INFO\"/\u003e\n                \u003chandlers\u003e\n                    \u003chandler name=\"CONSOLE\"/\u003e\n\n                \u003c/handlers\u003e\n            \u003c/root-logger\u003e\n            \u003cformatter name=\"PATTERN\"\u003e\n                \u003cpattern-formatter pattern=\"%d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%c] (%t) %s%e%n\"/\u003e\n            \u003c/formatter\u003e\n            \u003cformatter name=\"COLOR-PATTERN\"\u003e\n                \u003cpattern-formatter pattern=\"%K{level}%d{HH:mm:ss,SSS} %-5p [%c] (%t) %s%e%n\"/\u003e\n            \u003c/formatter\u003e\n        \u003clog:logger xmlns:log=\"urn:jboss:domain:logging:3.0\" xmlns=\"\" category=\"org.keycloak\"\u003e\n            \u003clog:level name=\"${env.KEYCLOAK_LOGLEVEL:INFO}\"/\u003e\n         \u003c/log:logger\u003e\n      \u003c/subsystem\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:deployment-scanner:2.0\"\u003e\n            \u003cdeployment-scanner path=\"deployments\" relative-to=\"jboss.server.base.dir\" scan-interval=\"5000\"\n                             runtime-failure-causes-rollback=\"${jboss.deployment.scanner.rollback.on.failure:false}\"/\u003e\n        \u003c/subsystem\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:bean-validation:1.0\"/\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:datasources:4.0\"\u003e\n            \u003cdatasources\u003e\n                \u003cdatasource jndi-name=\"java:jboss/datasources/ExampleDS\" pool-name=\"ExampleDS\"\n                        enabled=\"true\"\n                        use-java-context=\"true\"\u003e\n                    \u003cconnection-url\u003ejdbc:h2:mem:test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE\u003c/connection-url\u003e\n                    \u003cdriver\u003eh2\u003c/driver\u003e\n                    \u003csecurity\u003e\n                        \u003cuser-name\u003esa\u003c/user-name\u003e\n                        \u003cpassword\u003esa\u003c/password\u003e\n                    \u003c/security\u003e\n                \u003c/datasource\u003e\n                \u003cdatasource jndi-name=\"java:jboss/datasources/KeycloakDS\" pool-name=\"KeycloakDS\"\n                        enabled=\"true\"\n                        use-java-context=\"true\"\u003e\n                    \u003cconnection-url\u003ejdbc:h2:${jboss.server.data.dir}/keycloak;AUTO_SERVER=TRUE\u003c/connection-url\u003e\n                    \u003cdriver\u003eh2\u003c/driver\u003e\n                    \u003csecurity\u003e\n                        \u003cuser-name\u003esa\u003c/user-name\u003e\n                        \u003cpassword\u003esa\u003c/password\u003e\n                    \u003c/security\u003e\n                \u003c/datasource\u003e\n                \u003cdrivers\u003e\n                    \u003cdriver name=\"h2\" module=\"com.h2database.h2\"\u003e\n                        \u003cxa-datasource-class\u003eorg.h2.jdbcx.JdbcDataSource\u003c/xa-datasource-class\u003e\n                    \u003c/driver\u003e\n                \u003c/drivers\u003e\n            \u003c/datasources\u003e\n        \u003c/subsystem\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:ee:4.0\"\u003e\n            \u003cspec-descriptor-property-replacement\u003efalse\u003c/spec-descriptor-property-replacement\u003e\n            \u003cconcurrent\u003e\n                \u003ccontext-services\u003e\n                    \u003ccontext-service name=\"default\" jndi-name=\"java:jboss/ee/concurrency/context/default\"\n                                use-transaction-setup-provider=\"true\"/\u003e\n                \u003c/context-services\u003e\n                \u003cmanaged-thread-factories\u003e\n                    \u003cmanaged-thread-factory name=\"default\" jndi-name=\"java:jboss/ee/concurrency/factory/default\"\n                                       context-service=\"default\"/\u003e\n                \u003c/managed-thread-factories\u003e\n                \u003cmanaged-executor-services\u003e\n                    \u003cmanaged-executor-service name=\"default\" jndi-name=\"java:jboss/ee/concurrency/executor/default\"\n                                         context-service=\"default\"\n                                         hung-task-threshold=\"60000\"\n                                         keepalive-time=\"5000\"/\u003e\n                \u003c/managed-executor-services\u003e\n                \u003cmanaged-scheduled-executor-services\u003e\n                    \u003cmanaged-scheduled-executor-service name=\"default\" jndi-name=\"java:jboss/ee/concurrency/scheduler/default\"\n                                                   context-service=\"default\"\n                                                   hung-task-threshold=\"60000\"\n                                                   keepalive-time=\"3000\"/\u003e\n                \u003c/managed-scheduled-executor-services\u003e\n            \u003c/concurrent\u003e\n            \u003cdefault-bindings context-service=\"java:jboss/ee/concurrency/context/default\"\n                           datasource=\"java:jboss/datasources/ExampleDS\"\n                           managed-executor-service=\"java:jboss/ee/concurrency/executor/default\"\n                           managed-scheduled-executor-service=\"java:jboss/ee/concurrency/scheduler/default\"\n                           managed-thread-factory=\"java:jboss/ee/concurrency/factory/default\"/\u003e\n        \u003c/subsystem\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:ejb3:4.0\"\u003e\n            \u003csession-bean\u003e\n                \u003cstateless\u003e\n                    \u003cbean-instance-pool-ref pool-name=\"slsb-strict-max-pool\"/\u003e\n                \u003c/stateless\u003e\n                \u003cstateful default-access-timeout=\"5000\" cache-ref=\"simple\"\n                      passivation-disabled-cache-ref=\"simple\"/\u003e\n                \u003csingleton default-access-timeout=\"5000\"/\u003e\n            \u003c/session-bean\u003e\n            \u003cpools\u003e\n                \u003cbean-instance-pools\u003e\n                    \u003c!-- Automatically configure pools. Alternatively, max-pool-size can be set to a specific value --\u003e\n                    \u003cstrict-max-pool name=\"slsb-strict-max-pool\" derive-size=\"from-worker-pools\"\n                                instance-acquisition-timeout=\"5\"\n                                instance-acquisition-timeout-unit=\"MINUTES\"/\u003e\n                    \u003cstrict-max-pool name=\"mdb-strict-max-pool\" derive-size=\"from-cpu-count\"\n                                instance-acquisition-timeout=\"5\"\n                                instance-acquisition-timeout-unit=\"MINUTES\"/\u003e\n                \u003c/bean-instance-pools\u003e\n            \u003c/pools\u003e\n            \u003ccaches\u003e\n                \u003ccache name=\"simple\"/\u003e\n                \u003ccache name=\"distributable\" passivation-store-ref=\"infinispan\"\n                   aliases=\"passivating clustered\"/\u003e\n            \u003c/caches\u003e\n            \u003cpassivation-stores\u003e\n                \u003cpassivation-store name=\"infinispan\" cache-container=\"ejb\" max-size=\"10000\"/\u003e\n            \u003c/passivation-stores\u003e\n            \u003casync thread-pool-name=\"default\"/\u003e\n            \u003ctimer-service thread-pool-name=\"default\" default-data-store=\"default-file-store\"\u003e\n                \u003cdata-stores\u003e\n                    \u003cfile-data-store name=\"default-file-store\" path=\"timer-service-data\"\n                                relative-to=\"jboss.server.data.dir\"/\u003e\n                \u003c/data-stores\u003e\n            \u003c/timer-service\u003e\n            \u003cremote connector-ref=\"http-remoting-connector\" thread-pool-name=\"default\"/\u003e\n            \u003cthread-pools\u003e\n                \u003cthread-pool name=\"default\"\u003e\n                    \u003cmax-threads count=\"10\"/\u003e\n                    \u003ckeepalive-time time=\"100\" unit=\"milliseconds\"/\u003e\n                \u003c/thread-pool\u003e\n            \u003c/thread-pools\u003e\n            \u003cdefault-security-domain value=\"other\"/\u003e\n            \u003cdefault-missing-method-permissions-deny-access value=\"true\"/\u003e\n            \u003clog-system-exceptions value=\"true\"/\u003e\n        \u003c/subsystem\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:io:1.1\"\u003e\n            \u003cworker name=\"default\"/\u003e\n            \u003cbuffer-pool name=\"default\"/\u003e\n        \u003c/subsystem\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:infinispan:4.0\"\u003e\n            \u003ccache-container name=\"keycloak\" jndi-name=\"infinispan/Keycloak\"\u003e\n                \u003clocal-cache name=\"realms\"\u003e\n                    \u003ceviction max-entries=\"10000\" strategy=\"LRU\"/\u003e\n                \u003c/local-cache\u003e\n                \u003clocal-cache name=\"users\"\u003e\n                    \u003ceviction max-entries=\"10000\" strategy=\"LRU\"/\u003e\n                \u003c/local-cache\u003e\n                \u003clocal-cache name=\"sessions\"/\u003e\n                \u003clocal-cache name=\"offlineSessions\"/\u003e\n                \u003clocal-cache name=\"loginFailures\"/\u003e\n                \u003clocal-cache name=\"work\"/\u003e\n                \u003clocal-cache name=\"authorization\"\u003e\n                    \u003ceviction max-entries=\"100\" strategy=\"LRU\"/\u003e\n                \u003c/local-cache\u003e\n                \u003clocal-cache name=\"keys\"\u003e\n                    \u003ceviction max-entries=\"1000\" strategy=\"LRU\"/\u003e\n                    \u003cexpiration max-idle=\"3600000\"/\u003e\n                \u003c/local-cache\u003e\n            \u003c/cache-container\u003e\n            \u003ccache-container name=\"server\" default-cache=\"default\" module=\"org.wildfly.clustering.server\"\u003e\n                \u003clocal-cache name=\"default\"\u003e\n                    \u003ctransaction mode=\"BATCH\"/\u003e\n                \u003c/local-cache\u003e\n            \u003c/cache-container\u003e\n            \u003ccache-container name=\"web\" default-cache=\"passivation\"\n                          module=\"org.wildfly.clustering.web.infinispan\"\u003e\n                \u003clocal-cache name=\"passivation\"\u003e\n                    \u003clocking isolation=\"REPEATABLE_READ\"/\u003e\n                    \u003ctransaction mode=\"BATCH\"/\u003e\n                    \u003cfile-store passivation=\"true\" purge=\"false\"/\u003e\n                \u003c/local-cache\u003e\n                \u003clocal-cache name=\"persistent\"\u003e\n                    \u003clocking isolation=\"REPEATABLE_READ\"/\u003e\n                    \u003ctransaction mode=\"BATCH\"/\u003e\n                    \u003cfile-store passivation=\"false\" purge=\"false\"/\u003e\n                \u003c/local-cache\u003e\n            \u003c/cache-container\u003e\n            \u003ccache-container name=\"ejb\" aliases=\"sfsb\" default-cache=\"passivation\"\n                          module=\"org.wildfly.clustering.ejb.infinispan\"\u003e\n                \u003clocal-cache name=\"passivation\"\u003e\n                    \u003clocking isolation=\"REPEATABLE_READ\"/\u003e\n                    \u003ctransaction mode=\"BATCH\"/\u003e\n                    \u003cfile-store passivation=\"true\" purge=\"false\"/\u003e\n                \u003c/local-cache\u003e\n                \u003clocal-cache name=\"persistent\"\u003e\n                    \u003ctransaction mode=\"BATCH\"/\u003e\n                    \u003cfile-store passivation=\"false\" purge=\"false\"/\u003e\n                \u003c/local-cache\u003e\n            \u003c/cache-container\u003e\n            \u003ccache-container name=\"hibernate\" default-cache=\"local-query\" module=\"org.hibernate.infinispan\"\u003e\n                \u003clocal-cache name=\"entity\"\u003e\n                    \u003ctransaction mode=\"NON_XA\"/\u003e\n                    \u003ceviction strategy=\"LRU\" max-entries=\"10000\"/\u003e\n                    \u003cexpiration max-idle=\"100000\"/\u003e\n                \u003c/local-cache\u003e\n                \u003clocal-cache name=\"immutable-entity\"\u003e\n                    \u003ctransaction mode=\"NON_XA\"/\u003e\n                    \u003ceviction strategy=\"LRU\" max-entries=\"10000\"/\u003e\n                    \u003cexpiration max-idle=\"100000\"/\u003e\n                \u003c/local-cache\u003e\n                \u003clocal-cache name=\"local-query\"\u003e\n                    \u003ceviction strategy=\"LRU\" max-entries=\"10000\"/\u003e\n                    \u003cexpiration max-idle=\"100000\"/\u003e\n                \u003c/local-cache\u003e\n                \u003clocal-cache name=\"timestamps\"/\u003e\n            \u003c/cache-container\u003e\n        \u003c/subsystem\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:jaxrs:1.0\"/\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:jca:4.0\"\u003e\n            \u003carchive-validation enabled=\"true\" fail-on-error=\"true\" fail-on-warn=\"false\"/\u003e\n            \u003cbean-validation enabled=\"true\"/\u003e\n            \u003cdefault-workmanager\u003e\n                \u003cshort-running-threads\u003e\n                    \u003ccore-threads count=\"50\"/\u003e\n                    \u003cqueue-length count=\"50\"/\u003e\n                    \u003cmax-threads count=\"50\"/\u003e\n                    \u003ckeepalive-time time=\"10\" unit=\"seconds\"/\u003e\n                \u003c/short-running-threads\u003e\n                \u003clong-running-threads\u003e\n                    \u003ccore-threads count=\"50\"/\u003e\n                    \u003cqueue-length count=\"50\"/\u003e\n                    \u003cmax-threads count=\"50\"/\u003e\n                    \u003ckeepalive-time time=\"10\" unit=\"seconds\"/\u003e\n                \u003c/long-running-threads\u003e\n            \u003c/default-workmanager\u003e\n            \u003ccached-connection-manager/\u003e\n        \u003c/subsystem\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:jdr:1.0\"/\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:jmx:1.3\"\u003e\n            \u003cexpose-resolved-model/\u003e\n            \u003cexpose-expression-model/\u003e\n            \u003cremoting-connector/\u003e\n        \u003c/subsystem\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:jpa:1.1\"\u003e\n            \u003cjpa default-datasource=\"\" default-extended-persistence-inheritance=\"DEEP\"/\u003e\n        \u003c/subsystem\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:jsf:1.0\"/\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:mail:2.0\"\u003e\n            \u003cmail-session name=\"default\" jndi-name=\"java:jboss/mail/Default\"\u003e\n                \u003csmtp-server outbound-socket-binding-ref=\"mail-smtp\"/\u003e\n            \u003c/mail-session\u003e\n        \u003c/subsystem\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:naming:2.0\"\u003e\n            \u003cremote-naming/\u003e\n        \u003c/subsystem\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:remoting:3.0\"\u003e\n            \u003cendpoint/\u003e\n            \u003chttp-connector name=\"http-remoting-connector\" connector-ref=\"default\"\n                         security-realm=\"ApplicationRealm\"/\u003e\n        \u003c/subsystem\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:request-controller:1.0\"/\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:security-manager:1.0\"\u003e\n            \u003cdeployment-permissions\u003e\n                \u003cmaximum-set\u003e\n                    \u003cpermission class=\"java.security.AllPermission\"/\u003e\n                \u003c/maximum-set\u003e\n            \u003c/deployment-permissions\u003e\n        \u003c/subsystem\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:security:1.2\"\u003e\n            \u003csecurity-domains\u003e\n                \u003csecurity-domain name=\"other\" cache-type=\"default\"\u003e\n                    \u003cauthentication\u003e\n                        \u003clogin-module code=\"Remoting\" flag=\"optional\"\u003e\n                            \u003cmodule-option name=\"password-stacking\" value=\"useFirstPass\"/\u003e\n                        \u003c/login-module\u003e\n                        \u003clogin-module code=\"RealmDirect\" flag=\"required\"\u003e\n                            \u003cmodule-option name=\"password-stacking\" value=\"useFirstPass\"/\u003e\n                        \u003c/login-module\u003e\n                    \u003c/authentication\u003e\n                \u003c/security-domain\u003e\n                \u003csecurity-domain name=\"jboss-web-policy\" cache-type=\"default\"\u003e\n                    \u003cauthorization\u003e\n                        \u003cpolicy-module code=\"Delegating\" flag=\"required\"/\u003e\n                    \u003c/authorization\u003e\n                \u003c/security-domain\u003e\n                \u003csecurity-domain name=\"jboss-ejb-policy\" cache-type=\"default\"\u003e\n                    \u003cauthorization\u003e\n                        \u003cpolicy-module code=\"Delegating\" flag=\"required\"/\u003e\n                    \u003c/authorization\u003e\n                \u003c/security-domain\u003e\n                \u003csecurity-domain name=\"jaspitest\" cache-type=\"default\"\u003e\n                    \u003cauthentication-jaspi\u003e\n                        \u003clogin-module-stack name=\"dummy\"\u003e\n                            \u003clogin-module code=\"Dummy\" flag=\"optional\"/\u003e\n                        \u003c/login-module-stack\u003e\n                        \u003cauth-module code=\"Dummy\"/\u003e\n                    \u003c/authentication-jaspi\u003e\n                \u003c/security-domain\u003e\n            \u003c/security-domains\u003e\n        \u003c/subsystem\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:transactions:3.0\"\u003e\n            \u003ccore-environment\u003e\n                \u003cprocess-id\u003e\n                    \u003cuuid/\u003e\n                \u003c/process-id\u003e\n            \u003c/core-environment\u003e\n            \u003crecovery-environment socket-binding=\"txn-recovery-environment\"\n                               status-socket-binding=\"txn-status-manager\"/\u003e\n        \u003c/subsystem\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:undertow:3.0\"\u003e\n            \u003cbuffer-cache name=\"default\"/\u003e\n            \u003cserver name=\"default-server\"\u003e\n                \u003chttp-listener name=\"default\" socket-binding=\"http\" proxy-address-forwarding=\"true\" redirect-socket=\"proxy-https\"/\u003e\n                \u003chost name=\"default-host\" alias=\"localhost\"\u003e\n                    \u003clocation name=\"/\" handler=\"welcome-content\"/\u003e\n                    \u003cfilter-ref name=\"server-header\"/\u003e\n                    \u003cfilter-ref name=\"x-powered-by-header\"/\u003e\n                \u003c/host\u003e\n            \u003c/server\u003e\n            \u003cservlet-container name=\"default\"\u003e\n                \u003cjsp-config/\u003e\n                \u003cwebsockets/\u003e\n            \u003c/servlet-container\u003e\n            \u003chandlers\u003e\n                \u003cfile name=\"welcome-content\" path=\"${jboss.home.dir}/welcome-content\"/\u003e\n            \u003c/handlers\u003e\n            \u003cfilters\u003e\n                \u003cresponse-header name=\"server-header\" header-name=\"Server\" header-value=\"WildFly/10\"/\u003e\n                \u003cresponse-header name=\"x-powered-by-header\" header-name=\"X-Powered-By\" header-value=\"Undertow/1\"/\u003e\n            \u003c/filters\u003e\n        \u003c/subsystem\u003e\n        \u003csubsystem xmlns=\"urn:jboss:domain:keycloak-server:1.1\"\u003e\n            \u003cweb-context\u003eauth\u003c/web-context\u003e\n            \u003cproviders\u003e\n                \u003cprovider\u003eclasspath:${jboss.home.dir}/providers/*\u003c/provider\u003e\n            \u003c/providers\u003e\n            \u003cmaster-realm-name\u003emaster\u003c/master-realm-name\u003e\n            \u003cscheduled-task-interval\u003e900\u003c/scheduled-task-interval\u003e\n            \u003ctheme\u003e\n                \u003cstaticMaxAge\u003e2592000\u003c/staticMaxAge\u003e\n                \u003ccacheThemes\u003etrue\u003c/cacheThemes\u003e\n                \u003ccacheTemplates\u003etrue\u003c/cacheTemplates\u003e\n                \u003cdir\u003e${jboss.home.dir}/themes\u003c/dir\u003e\n            \u003c/theme\u003e\n            \u003cspi name=\"eventsStore\"\u003e\n                \u003cdefault-provider\u003ejpa\u003c/default-provider\u003e\n                \u003cprovider name=\"jpa\" enabled=\"true\"\u003e\n                    \u003cproperties\u003e\n                        \u003cproperty name=\"exclude-events\" value=\"[\u0026#34;REFRESH_TOKEN\u0026#34;]\"/\u003e\n                    \u003c/properties\u003e\n                \u003c/provider\u003e\n            \u003c/spi\u003e\n            \u003cspi name=\"realm\"\u003e\n                \u003cdefault-provider\u003ejpa\u003c/default-provider\u003e\n            \u003c/spi\u003e\n            \u003cspi name=\"user\"\u003e\n                \u003cdefault-provider\u003ejpa\u003c/default-provider\u003e\n            \u003c/spi\u003e\n            \u003cspi name=\"userFederatedStorage\"\u003e\n                \u003cdefault-provider\u003ejpa\u003c/default-provider\u003e\n            \u003c/spi\u003e\n            \u003cspi name=\"userCache\"\u003e\n                \u003cprovider name=\"default\" enabled=\"true\"/\u003e\n            \u003c/spi\u003e\n            \u003cspi name=\"userSessionPersister\"\u003e\n                \u003cdefault-provider\u003ejpa\u003c/default-provider\u003e\n            \u003c/spi\u003e\n            \u003cspi name=\"authorizationPersister\"\u003e\n                \u003cdefault-provider\u003ejpa\u003c/default-provider\u003e\n            \u003c/spi\u003e\n            \u003cspi name=\"timer\"\u003e\n                \u003cdefault-provider\u003ebasic\u003c/default-provider\u003e\n            \u003c/spi\u003e\n            \u003cspi name=\"connectionsHttpClient\"\u003e\n                \u003cprovider name=\"default\" enabled=\"true\"/\u003e\n            \u003c/spi\u003e\n            \u003cspi name=\"connectionsJpa\"\u003e\n                \u003cprovider name=\"default\" enabled=\"true\"\u003e\n                    \u003cproperties\u003e\n                        \u003cproperty name=\"dataSource\" value=\"java:jboss/datasources/KeycloakDS\"/\u003e\n                        \u003cproperty name=\"initializeEmpty\" value=\"true\"/\u003e\n                        \u003cproperty name=\"migrationStrategy\" value=\"update\"/\u003e\n                        \u003cproperty name=\"migrationExport\" value=\"${jboss.home.dir}/keycloak-database-update.sql\"/\u003e\n                    \u003c/properties\u003e\n                \u003c/provider\u003e\n            \u003c/spi\u003e\n            \u003cspi name=\"realmCache\"\u003e\n                \u003cprovider name=\"default\" enabled=\"true\"/\u003e\n            \u003c/spi\u003e\n            \u003cspi name=\"connectionsInfinispan\"\u003e\n                \u003cdefault-provider\u003edefault\u003c/default-provider\u003e\n                \u003cprovider name=\"default\" enabled=\"true\"\u003e\n                    \u003cproperties\u003e\n                        \u003cproperty name=\"cacheContainer\" value=\"java:comp/env/infinispan/Keycloak\"/\u003e\n                    \u003c/properties\u003e\n                \u003c/provider\u003e\n            \u003c/spi\u003e\n            \u003cspi name=\"jta-lookup\"\u003e\n                \u003cdefault-provider\u003e${keycloak.jta.lookup.provider:jboss}\u003c/default-provider\u003e\n                \u003cprovider name=\"jboss\" enabled=\"true\"/\u003e\n            \u003c/spi\u003e\n            \u003cspi name=\"publicKeyStorage\"\u003e\n                \u003cprovider name=\"infinispan\" enabled=\"true\"\u003e\n                    \u003cproperties\u003e\n                        \u003cproperty name=\"minTimeBetweenRequests\" value=\"10\"/\u003e\n                    \u003c/properties\u003e\n                \u003c/provider\u003e\n            \u003c/spi\u003e\n            \u003cspi name=\"truststore\"\u003e\n                \u003cprovider name=\"file\" enabled=\"true\"\u003e\n                    \u003cproperties\u003e\n                        \u003cproperty name=\"file\" value=\"/opt/jboss/keycloak/standalone/configuration/tls/openshift-truststore.jks\"/\u003e\n                        \u003cproperty name=\"password\" value=\"changeit\"/\u003e\n                        \u003cproperty name=\"hostname-verification-policy\" value=\"WILDCARD\"/\u003e\n                        \u003cproperty name=\"disabled\" value=\"false\"/\u003e\n                    \u003c/properties\u003e\n                \u003c/provider\u003e\n            \u003c/spi\u003e\n        \u003c/subsystem\u003e\n    \u003c/profile\u003e\n    \u003cinterfaces\u003e\n        \u003cinterface name=\"management\"\u003e\n            \u003cinet-address value=\"${jboss.bind.address.management:127.0.0.1}\"/\u003e\n        \u003c/interface\u003e\n        \u003cinterface name=\"public\"\u003e\n            \u003cinet-address value=\"${jboss.bind.address:127.0.0.1}\"/\u003e\n        \u003c/interface\u003e\n    \u003c/interfaces\u003e\n    \u003csocket-binding-group name=\"standard-sockets\" default-interface=\"public\"\n                         port-offset=\"${jboss.socket.binding.port-offset:0}\"\u003e\n        \u003csocket-binding name=\"management-http\" interface=\"management\"\n                      port=\"${jboss.management.http.port:9990}\"/\u003e\n        \u003csocket-binding name=\"management-https\" interface=\"management\"\n                      port=\"${jboss.management.https.port:9993}\"/\u003e\n        \u003csocket-binding name=\"ajp\" port=\"${jboss.ajp.port:8009}\"/\u003e\n        \u003csocket-binding name=\"http\" port=\"${jboss.http.port:8080}\"/\u003e\n        \u003csocket-binding name=\"https\" port=\"${jboss.https.port:8443}\"/\u003e\n        \u003csocket-binding name=\"proxy-https\" port=\"443\"/\u003e\n        \u003csocket-binding name=\"txn-recovery-environment\" port=\"4712\"/\u003e\n        \u003csocket-binding name=\"txn-status-manager\" port=\"4713\"/\u003e\n        \u003coutbound-socket-binding name=\"mail-smtp\"\u003e\n            \u003cremote-destination host=\"localhost\" port=\"25\"/\u003e\n        \u003c/outbound-socket-binding\u003e\n    \u003c/socket-binding-group\u003e\n\u003c/server\u003e"
+            },
+            "kind": "ConfigMap",
+            "metadata": {
+                "labels": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-keycloak"
+                },
+                "name": "ipaas-keycloak-config"
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "data": {
+                "config.json": "{\n  \"apiEndpoint\": \"https://ipaas-staging.b6ff.rh-idev.openshiftapps.com/api/v1\",\n  \"title\": \"Red Hat iPaaS\",\n  \"oauth\": {\n    \"clientId\": \"ipaas-ui\",\n    \"scopes\": [\"openid\"],\n    \"oidc\": true,\n    \"hybrid\": true,\n    \"issuer\": \"https://ipaas-staging.b6ff.rh-idev.openshiftapps.com/auth/realms/ipaas\"\n  }\n}\n"
+            },
+            "kind": "ConfigMap",
+            "metadata": {
+                "labels": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-ui"
+                },
+                "name": "ipaas-ui-config"
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "data": {
+                "application.yml": "deployment:\n  file: com/redhat/ipaas/rest/v1/deployment.json\nresteasy:\n  jaxrs:\n    app:\n      registration: property\n      classes: com.redhat.ipaas.rest.v1.V1Application\ncors:\n  allowedOrigins: https://ipaas-staging.b6ff.rh-idev.openshiftapps.com\ncache:\n  cluster:\n    name: IPaaSCluster\n  max:\n    entries: 100\nspring:\n  zipkin:\n    enabled: false\nsecurity:\n  basic:\n    enabled: false\nmanagement:\n  port: 8181\n  security:\n    enabled: true\nendpoints:\n  health:\n    sensitive: false\nkeycloak:\n  enabled: true\n  configurationFile: file:config/ipaas-client.json",
+                "ipaas-client.json": "{\n  \"realm\": \"ipaas\",\n  \"bearer-only\": true,\n  \"auth-server-url\": \"https://ipaas-staging.b6ff.rh-idev.openshiftapps.com/auth\",\n  \"ssl-required\": \"external\",\n  \"resource\": \"ipaas-rest\",\n  \"allow-any-hostname\" : false\n}"
+            },
+            "kind": "ConfigMap",
+            "metadata": {
+                "labels": {
+                    "app": "redhat-ipaas",
+                    "component": "ipaas-rest"
+                },
+                "name": "ipaas-rest-config"
+            }
+        }
+    ]
+}
