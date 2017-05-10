@@ -7,7 +7,7 @@ else
 fi
 
 # We pass the namespace on each command individually, because when this script is run inside a pod, all commands default to the pod namespace (ignoring commands like `oc project` etc)
-echo "Installing Syndesis in ${KUBERNETES_NAMESPACE}"
+echo "Installing Syndesis in ${KUBERNETES_NAMESPACE} using branch: $BRANCH"
 oc project ${KUBERNETES_NAMESPACE}
 
 oc create -f https://raw.githubusercontent.com/syndesisio/openshift-templates/${BRANCH}/syndesis.yml -n ${KUBERNETES_NAMESPACE}  || oc replace -f https://raw.githubusercontent.com/syndesisio/openshift-templates/${BRANCH}/syndesis.yml -n ${KUBERNETES_NAMESPACE}
